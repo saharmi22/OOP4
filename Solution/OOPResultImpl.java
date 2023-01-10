@@ -1,14 +1,15 @@
 package OOP.Solution;
 
 import OOP.Provided.OOPAssertionFailure;
+import OOP.Provided.OOPExpectedException;
 import OOP.Provided.OOPResult;
 
 public class OOPResultImpl implements OOPResult {
 
     Throwable e;
-    OOPExpectedExceptionImpl expected;
+    OOPExpectedException expected;
 
-    public OOPResultImpl(Exception e, OOPExpectedExceptionImpl expected){
+    public OOPResultImpl(Throwable e, OOPExpectedException expected){
         this.e = e;
         this.expected = expected;
     }
