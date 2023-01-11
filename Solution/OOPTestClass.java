@@ -8,7 +8,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface OOPTestClass {
-    OOPTestClassType value();
+    OOPTestClassType value() default OOPTestClassType.UNORDERED;
 
     public enum OOPTestClassType {
         ORDERED, UNORDERED

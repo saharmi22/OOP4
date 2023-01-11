@@ -8,31 +8,55 @@ public class OOPResultImpl implements OOPResult {
 
     Throwable e;
     OOPExpectedException expected;
+    OOPTestResult result;
 
     public OOPResultImpl(Throwable e, OOPExpectedException expected){
-        this.e = e;
+        this.e = new Throwable(e);
         this.expected = expected;
+        if (expected != null && expected.getExpectedException() == null){
+            if (e == null) {
+                result = OOPTestResult.SUCCESS;
+                return;
+            }
+            else if (e.getCause() instanceof OOPAssertionFailure) {
+                result = OOPTestResult.FAILURE;
+                return;
+            } else {
+                result = OOPTestResult.ERROR;
+                return;
+            }
+        }
+        else if (expected!=null && expected.getExpectedException()!=null){
+            if (e.getCause() instanceof OOPAssertionFailure) {
+                result = OOPTestResult.FAILURE;
+                return;
+            }
+            else if (e.getCause() instanceof Exception) {
+                if (expected.assertExpected((Exception)e))
+                    result = OOPTestResult.SUCCESS;
+                return;
+            }
+            result = OOPTestResult.EXPECTED_EXCEPTION_MISMATCH;
+        }
+        else if (expected == null){
+            if (e == null){
+                result = OOPTestResult.SUCCESS;
+                return;
+            }
+            if (e.getCause() instanceof OOPAssertionFailure){
+                result = OOPTestResult.FAILURE;
+                return;
+            }
+            else{
+                result=OOPTestResult.ERROR;
+                return;
+            }
+        }
     }
 
     @Override
     public OOPTestResult getResultType(){
-        if (expected == null){
-            if (e == null)
-                return  OOPTestResult.SUCCESS;
-            else if (e instanceof OOPAssertionFailure) {
-                    return OOPTestResult.FAILURE;
-            } else
-                return OOPTestResult.ERROR;
-        }
-        else {
-            if (e instanceof OOPAssertionFailure)
-                return OOPTestResult.FAILURE;
-            else if (e instanceof Exception) {
-                if (expected.assertExpected((Exception)e))
-                    return OOPTestResult.SUCCESS;
-            }
-            return OOPTestResult.EXPECTED_EXCEPTION_MISMATCH;
-        }
+       return result;
     }
 
     @Override

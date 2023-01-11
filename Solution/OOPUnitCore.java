@@ -3,6 +3,7 @@ package OOP.Solution;
 import OOP.Provided.OOPAssertionFailure;
 import OOP.Provided.OOPExpectedException;
 import OOP.Provided.OOPResult;
+import org.junit.rules.ExpectedException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
@@ -15,11 +16,11 @@ public class OOPUnitCore {
 
     public static void assertEquals(Object expected, Object actual){
         if (!expected.equals(actual)){
-            throw new OOPAssertionFailure();
+            throw new OOPAssertionFailure(expected, actual);
         }
     }
 
-    static void fail(){
+    static public void fail(){
         throw new OOPAssertionFailure();
     }
 
@@ -61,7 +62,7 @@ public class OOPUnitCore {
                                                    ArrayList<Method> beforeMethods, ArrayList<Method> afterMethods, ArrayList<Method> testMethods) {
         Map<String, OOPResult> oopResultMap = new HashMap<>();
         HashMap<String, Object> backupFields = new HashMap<>();
-        int before_success, after_success;
+        Exception before_success, after_success;
 
         for (Method test : testMethods){
             Throwable e = null;
@@ -69,8 +70,10 @@ public class OOPUnitCore {
                 backupFields = backupObject(testObject);
             before_success = invokeMethodList_Before(testObject, beforeMethods, test);
             //if a before function sends an exception, we need to restore the object and continue to the next step
-            if (before_success == 0 && testObject != null) {
+            if (before_success != null && testObject != null) {
                 restoreObject(testObject, backupFields);
+                OOPResult result = new OOPResultImpl(before_success, null);
+                oopResultMap.put(test.getName(), result);
                 continue;
             }
             try {
@@ -85,7 +88,7 @@ public class OOPUnitCore {
             if (testObject != null)
                 backupFields = backupObject(testObject);
             after_success = invokeMethodList_After(testObject, afterMethods, test);
-            if (after_success == 0 && testObject != null) {
+            if (after_success != null && testObject != null) {
                 restoreObject(testObject, backupFields);
             }
         }
@@ -147,7 +150,7 @@ public class OOPUnitCore {
         return null;
     }
 
-    private static int invokeMethodList_Before(Object testObject, ArrayList<Method> beforeMethods, Method test) {
+    private static  Exception invokeMethodList_Before(Object testObject, ArrayList<Method> beforeMethods, Method test) {
         for (int i= beforeMethods.size()-1; i>=0; i--){
             Method m = beforeMethods.get(i);
             try {
@@ -156,13 +159,13 @@ public class OOPUnitCore {
                     beforeMethods.get(i).invoke(testObject);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
-                return 0;
+                return e;
             }
         }
-        return 1;
+        return null;
     }
 
-    private static int invokeMethodList_After(Object testObject, ArrayList<Method> afterMethods, Method test) {
+    private static Exception invokeMethodList_After(Object testObject, ArrayList<Method> afterMethods, Method test) {
         for (Method m : afterMethods) {
 
             try {
@@ -170,10 +173,10 @@ public class OOPUnitCore {
                 if (Arrays.asList(m.getAnnotation(OOPAfter.class).value()).contains(test.getName()))
                     m.invoke(testObject);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                return 0;
+                return e;
             }
         }
-        return 1;
+        return null;
     }
 
     private static ArrayList<Method> createMethodListByAnnotation(Class<?> testClass, Class<? extends Annotation> annotation){
