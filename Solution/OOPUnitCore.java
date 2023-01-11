@@ -13,7 +13,7 @@ import java.util.Map;
 
 public class OOPUnitCore {
 
-    static void assertEquals(Object expected, Object actual){
+    public static void assertEquals(Object expected, Object actual){
         if (!expected.equals(actual)){
             throw new OOPAssertionFailure();
         }
@@ -23,58 +23,58 @@ public class OOPUnitCore {
         throw new OOPAssertionFailure();
     }
 
-    static OOPTestSummary runClass(Class<?> testClass){
+    static public OOPTestSummary runClass(Class<?> testClass){
         return runClass(testClass, "");
     }
-    static OOPTestSummary runClass(Class<?> testClass, String tag){
-        if (testClass == null || testClass.isAnnotationPresent(OOPTestClass.class)){
+    static public OOPTestSummary runClass(Class<?> testClass, String tag){
+        if (testClass == null || !testClass.isAnnotationPresent(OOPTestClass.class) || tag == null)
             throw new IllegalArgumentException();
-        }
+
         //A- create instance of test class
-        Object test_object = null;
-        try{
-            Method con = testClass.getDeclaredMethod(testClass.getName());
-            con.setAccessible(true);
-            test_object = con.invoke(testClass);
-        }
-        catch(NoSuchMethodException | IllegalAccessException ignored){} catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        //check ExpectedException variable
-        Field expectedExceptions = findExpectedExceptionField(testClass);
-        OOPExpectedException expected = null;
-        if (expectedExceptions == null) {
-            expectedExceptions.setAccessible(true);
-            try {
-                expected = (OOPExpectedException) expectedExceptions.get(test_object);
-            } catch (IllegalAccessException ignored) {}
-        }
+        Object test_object = createTestObject(testClass);
+
+        //find ExpectedException variable
+        OOPExpectedException expected = findExpectedExceptionVariable(testClass, test_object);
+
         //B- run setup functions
         ArrayList<Method> setup_methods = createMethodListByAnnotation(testClass, OOPSetup.class);
         invokeMethodList_setup(test_object, setup_methods);
-        //C+D+E- run OOPBefore functions then test and then OOPAfter functions while checking results and creating a map
+
+        //create before, tests and after array functions
         ArrayList<Method> Before_methods = createMethodListByAnnotation(testClass, OOPBefore.class);
         ArrayList<Method> After_methods = createMethodListByAnnotation(testClass, OOPAfter.class);
         ArrayList<Method> test_methods = createMethodListByAnnotation(testClass, OOPTest.class);
         if (testClass.getAnnotation(OOPTestClass.class).value() == OOPTestClass.OOPTestClassType.ORDERED)
             test_methods = sortTestMethods(test_methods);
         test_methods = filterByTag(test_methods, tag);
+
+        //C+D+E- run OOPBefore functions then test and then OOPAfter functions while checking results and creating a map
+        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, expected, Before_methods, After_methods, test_methods);
+
+
+        return new OOPTestSummary(oopResultMap);
+    }
+
+
+
+    private static Map<String, OOPResult> runTests(Class<?> testClass, Object testObject, OOPExpectedException expected,
+                                                   ArrayList<Method> beforeMethods, ArrayList<Method> afterMethods, ArrayList<Method> testMethods) {
         Map<String, OOPResult> oopResultMap = new HashMap<>();
         HashMap<String, Object> backupFields = new HashMap<>();
-        int before = 0, after = 0;
-        for (Method test : test_methods){
+        int before_success, after_success;
+
+        for (Method test : testMethods){
             Throwable e = null;
-
-            if (test_object != null)
-                backupFields = backupObject(test_object);
-            before = invokeMethodList_Before(test_object, Before_methods, test);
-            if (before == 0 && test_object != null) {
-                restoreObject(test_object, backupFields);
+            if (testObject != null)
+                backupFields = backupObject(testObject);
+            before_success = invokeMethodList_Before(testObject, beforeMethods, test);
+            //if a before function sends an exception, we need to restore the object and continue to the next step
+            if (before_success == 0 && testObject != null) {
+                restoreObject(testObject, backupFields);
+                continue;
             }
-
-
             try {
-                test.invoke(test_object);
+                test.invoke(testObject); //run the test!
             } catch (Throwable t){
                 e = t;
             }
@@ -82,15 +82,50 @@ public class OOPUnitCore {
                 OOPResult result = new OOPResultImpl(e, expected);
                 oopResultMap.put(test.getName(), result);
             }
-
-            if (test_object != null)
-                backupFields = backupObject(test_object);
-            after = invokeMethodList_After(test_object, After_methods, test);
-            if (after == 0 && test_object != null) {
-                restoreObject(test_object, backupFields);
+            if (testObject != null)
+                backupFields = backupObject(testObject);
+            after_success = invokeMethodList_After(testObject, afterMethods, test);
+            if (after_success == 0 && testObject != null) {
+                restoreObject(testObject, backupFields);
             }
         }
-        return new OOPTestSummary(oopResultMap);
+        return oopResultMap;
+    }
+
+    private static OOPExpectedException findExpectedExceptionVariable(Class<?> testClass, Object test_object) {
+        Field expectedExceptions = findExpectedExceptionField(testClass);
+        OOPExpectedException expected = null;
+        if (expectedExceptions != null) {
+            expectedExceptions.setAccessible(true);
+            try {
+                expected = (OOPExpectedException) expectedExceptions.get(test_object);
+            } catch (IllegalAccessException ignored) {}
+        }
+        return expected;
+    }
+
+    private static Object createTestObject(Class<?> testClass) {
+        try{
+
+            //Method con = testClass.getDeclaredMethod(testClass.getName());
+
+            //return con.newInstance();
+            return testClass.newInstance();
+            //return con.invoke(testClass);
+        }
+        catch(IllegalAccessException e){
+            try{
+                Constructor<?> con = testClass.getConstructor(testClass);
+                con.setAccessible(true);
+                return testClass.newInstance();
+            }
+            catch (java.lang.NoSuchMethodException | java.lang.InstantiationException | java.lang.IllegalAccessException ignored){}
+
+        } catch (Exception e) {
+
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     private static ArrayList<Method> filterByTag(ArrayList<Method> testMethods, String tag) {
@@ -103,9 +138,9 @@ public class OOPUnitCore {
     }
 
     private static Field findExpectedExceptionField(Class<?> testClass) {
-        Field[] fields = testClass.getFields();
+        Field[] fields = testClass.getDeclaredFields();
         for (Field f : fields){
-            if (f.getType() == OOPExpectedExceptionImpl.class){
+            if (f.getType() == OOPExpectedException.class){
                 return f;
             }
         }
@@ -144,16 +179,16 @@ public class OOPUnitCore {
     private static ArrayList<Method> createMethodListByAnnotation(Class<?> testClass, Class<? extends Annotation> annotation){
         Class<?> temp = testClass;
         ArrayList<Method> annotationMethods = new ArrayList<>();
+
         do {
-            for (Method m : testClass.getDeclaredMethods()) {
+            Method[] declaredMethods = temp.getDeclaredMethods();
+            for (Method m : declaredMethods) {
                 if (m.isAnnotationPresent(annotation)){
                     //check if method already in list -> if it is we found it in a subclass - by java conformance don't need to invoke
                     Method dup = methodListContains(annotationMethods, m.getName());
                     if (dup == null){
                         annotationMethods.add(m);
                     }
-                    //setup Annotation is only present in a single function
-                    break;
                 }
             }
             temp = temp.getSuperclass();
@@ -165,8 +200,11 @@ public class OOPUnitCore {
         ArrayList<Method> sortedArray = new ArrayList<>();
         for (int i = 1; i <= testsArray.size(); i++){
             for (Method m : testsArray){
-                if (m.getAnnotation(OOPTest.class).order() == i)
+                if (m.getAnnotation(OOPTest.class).order() == i){
                     sortedArray.add(m);
+                    break;
+                }
+
             }
         }
         return sortedArray;
@@ -174,34 +212,30 @@ public class OOPUnitCore {
 
     private static HashMap<String, Object> backupObject (Object toBackup) {
         HashMap<String, Object> fieldsBackup = new HashMap<>();
-        Field[] fields = toBackup.getClass().getFields();
+        Field[] fields = toBackup.getClass().getDeclaredFields();
         Object value = null;
         for (Field f : fields) {
+            f.setAccessible(true);
             try {
-                value = (f.get(toBackup)).clone();//todo
-            } catch (CloneNotSupportedException e) {
-                Method[] methods = f.getClass().getMethods();
-                for (Method mtd : methods) {
-                    if (mtd.getName().equals(f.getClass().getName()) && mtd.getParameterTypes().length == 1
-                            && mtd.getParameterTypes()[0] == f.getClass()) {
-                        try {
-                            value = mtd.invoke(f);
-                        } catch (Exception ex) {
-                            throw new RuntimeException(ex);
+                Method m_clone = (f.get(toBackup)).getClass().getDeclaredMethod("clone");
+                m_clone.setAccessible(true);
+                value = m_clone.invoke(f.get(toBackup));
+            } catch (NoSuchMethodException| SecurityException e) {
+                try{
+                    //value = f.getClass().n;
+                    Constructor<?>[] ctors = (f.get(toBackup)).getClass().getConstructors();
+                    for (Constructor<?> ctor : ctors) {
+                        if (ctor.getParameterTypes().length == 1 && ctor.getParameterTypes()[0] == f.getType()) {
+                            value = ctor.newInstance(f.get(toBackup));
+                            break;
                         }
                     }
-                }
-                if (value == null) {
-                    try {
+                    if (value == null)
                         value = f.get(toBackup);
-                    } catch (Exception ex) {
-                        throw new RuntimeException(ex);
-                    }
-                }
-            } catch (Exception ex) {
-                throw new RuntimeException(ex);
-            }
+                } catch(Exception ignore){}
+            } catch (Exception ignore) {}
             fieldsBackup.put(f.getName(), value);
+            value = null;
         }
         return fieldsBackup;
     }
@@ -210,11 +244,10 @@ public class OOPUnitCore {
         Field[] fields = repairMe.getClass().getFields();
         for (Field f : fields){
             try{
+                f.setAccessible(true);
                 f.set(repairMe, storedValues.get(f.getName()));
             }
-            catch(Exception ex){
-                throw new RuntimeException(ex);
-            }
+            catch(Exception ignore){}
         }
         storedValues.clear();
     }

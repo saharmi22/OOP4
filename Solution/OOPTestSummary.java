@@ -21,19 +21,19 @@ public class OOPTestSummary {
         return count;
     }
 
-    int getNumSuccesses(){
+    public int getNumSuccesses(){
         return getNumResult(OOPResult.OOPTestResult.SUCCESS);
     }
 
-    int getNumFailures() {
+    public int getNumFailures() {
         return getNumResult(OOPResult.OOPTestResult.FAILURE);
     }
 
-    int getNumExceptionMismatches(){
+    public int getNumExceptionMismatches(){
         return getNumResult(OOPResult.OOPTestResult.EXPECTED_EXCEPTION_MISMATCH);
     }
 
-    int getNumErrors(){
+    public int getNumErrors(){
         return getNumResult(OOPResult.OOPTestResult.ERROR);
     }
 }

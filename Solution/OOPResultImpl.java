@@ -27,8 +27,8 @@ public class OOPResultImpl implements OOPResult {
         else {
             if (e instanceof OOPAssertionFailure)
                 return OOPTestResult.FAILURE;
-            else if (e instanceof Exception e_) {
-                if (expected.assertExpected(e_))
+            else if (e instanceof Exception) {
+                if (expected.assertExpected((Exception)e))
                     return OOPTestResult.SUCCESS;
             }
             return OOPTestResult.EXPECTED_EXCEPTION_MISMATCH;
