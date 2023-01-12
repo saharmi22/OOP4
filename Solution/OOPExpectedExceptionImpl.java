@@ -33,9 +33,14 @@ public class OOPExpectedExceptionImpl implements OOPExpectedException{
     @Override
     public boolean assertExpected(Exception e) {
         if (e!=null) {
-            if (!(e.getCause().getClass().getName().equals(this.expected.getName()))) {
+            ///
+            if (!(this.expected.isAssignableFrom(e.getCause().getClass()))){
                 return false;
             }
+            ///
+            //if (!(e.getCause().getClass().getName().equals(this.expected.getName()))) {
+            //    return false;
+            //}
             String exception_msg = e.getCause().getMessage();
             for (String msg : this.expected_massages) {
                 if (!exception_msg.contains(msg))

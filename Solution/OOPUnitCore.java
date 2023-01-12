@@ -73,6 +73,7 @@ public class OOPUnitCore {
             if (before_success != null && testObject != null) {
                 restoreObject(testObject, backupFields);
                 OOPResult result = new OOPResultImpl(before_success, null);
+                //OOPResult result = OOPResult.ERROR;
                 oopResultMap.put(test.getName(), result);
                 continue;
             }
@@ -82,6 +83,7 @@ public class OOPUnitCore {
                 e = t;
             }
             finally {
+                expected = findExpectedExceptionVariable(testClass, testObject);
                 OOPResult result = new OOPResultImpl(e, expected);
                 oopResultMap.put(test.getName(), result);
             }
@@ -90,7 +92,10 @@ public class OOPUnitCore {
             after_success = invokeMethodList_After(testObject, afterMethods, test);
             if (after_success != null && testObject != null) {
                 restoreObject(testObject, backupFields);
+                OOPResult err = new OOPResultImpl(new Exception(), null);
+                oopResultMap.put(test.getName(), err);
             }
+
         }
         return oopResultMap;
     }
@@ -201,14 +206,18 @@ public class OOPUnitCore {
 
     public static ArrayList<Method> sortTestMethods (ArrayList<Method> testsArray){
         ArrayList<Method> sortedArray = new ArrayList<>();
+        Boolean updated_in_round = false;
         for (int i = 1; i <= testsArray.size(); i++){
             for (Method m : testsArray){
                 if (m.getAnnotation(OOPTest.class).order() == i){
                     sortedArray.add(m);
+                    updated_in_round = true;
                     break;
                 }
-
             }
+            if (!updated_in_round)
+                break;
+            updated_in_round = false;
         }
         return sortedArray;
     }
@@ -244,7 +253,7 @@ public class OOPUnitCore {
     }
 
     private static void restoreObject (Object repairMe, HashMap<String, Object> storedValues){
-        Field[] fields = repairMe.getClass().getFields();
+        Field[] fields = repairMe.getClass().getDeclaredFields();
         for (Field f : fields){
             try{
                 f.setAccessible(true);
@@ -263,10 +272,10 @@ public class OOPUnitCore {
         }
     }
 
-    private static Method methodListContains(ArrayList<Method> setupMethods, String name) {
-        for (Method setupMethod : setupMethods) {
-            if (setupMethod.getName().equals(name)) {
-                return setupMethod;
+    private static Method methodListContains(ArrayList<Method> Methods, String name) {
+        for (Method Method : Methods) {
+            if (Method.getName().equals(name)) {
+                return Method;
             }
         }
         return null;

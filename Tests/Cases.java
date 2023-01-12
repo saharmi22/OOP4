@@ -300,7 +300,7 @@ public class Cases {
         @OOPTest(order=4)
         @Override
         public void test3() {
-            OOPUnitCore.assertEquals(this.s, afterAfterOverride);
+                        OOPUnitCore.assertEquals(this.s, afterAfterOverride);
         }
     }
 

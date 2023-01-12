@@ -27,6 +27,10 @@ public class OOPResultImpl implements OOPResult {
             }
         }
         else if (expected!=null && expected.getExpectedException()!=null){
+            if (e==null){
+                result = OOPTestResult.ERROR;
+                return;
+            }
             if (e.getCause() instanceof OOPAssertionFailure) {
                 result = OOPTestResult.FAILURE;
                 return;
@@ -34,9 +38,10 @@ public class OOPResultImpl implements OOPResult {
             else if (e.getCause() instanceof Exception) {
                 if (expected.assertExpected((Exception)e))
                     result = OOPTestResult.SUCCESS;
+                else
+                    result = OOPTestResult.EXPECTED_EXCEPTION_MISMATCH;
                 return;
             }
-            result = OOPTestResult.EXPECTED_EXCEPTION_MISMATCH;
         }
         else if (expected == null){
             if (e == null){
