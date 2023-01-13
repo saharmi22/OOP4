@@ -54,6 +54,7 @@ public class BaseTest {
     }
 
     protected void runClassTagAllSuccess(Class<?> c, String tag) {
+        int a = getNumOfTestMethods(c, tag);
         runClassTag(c, tag,
                 getNumOfTestMethods(c, tag),
                 0,

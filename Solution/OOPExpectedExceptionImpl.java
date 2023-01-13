@@ -33,7 +33,7 @@ public class OOPExpectedExceptionImpl implements OOPExpectedException{
 
     @Override
     public boolean assertExpected(Exception e) {
-        if (e!=null) {
+        if (e!=null && e.getCause()!=null) {
             ///
             if (!(this.expected.isAssignableFrom(e.getCause().getClass()))){
                 return false;

@@ -12,6 +12,12 @@ import java.util.*;
 public class OOPUnitCore {
 
     public static void assertEquals(Object expected, Object actual){
+        if (expected == null){
+            if (actual == null)
+                return;
+            else
+                throw new OOPAssertionFailure(null, actual);
+        }
         if (!expected.equals(actual)){
             throw new OOPAssertionFailure(expected, actual);
         }
@@ -127,7 +133,6 @@ public class OOPUnitCore {
             catch (java.lang.NoSuchMethodException | java.lang.InstantiationException | java.lang.IllegalAccessException ignored){}
 
         } catch (Exception e) {
-
             throw new RuntimeException(e);
         }
         return null;
