@@ -469,6 +469,7 @@ public class PartThreeIntegrationTests {
                 test_correct_order += 1;
             }
             num_of_before_methods++;
+            //num_of_before_methods--;
         }
 
         @OOPBefore(value = {"fourth_test"})

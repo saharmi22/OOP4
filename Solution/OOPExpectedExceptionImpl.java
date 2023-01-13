@@ -2,6 +2,7 @@ package OOP.Solution;
 
 import OOP.Provided.OOPExpectedException;
 
+
 import java.util.ArrayList;
 
 public class OOPExpectedExceptionImpl implements OOPExpectedException{
@@ -37,12 +38,13 @@ public class OOPExpectedExceptionImpl implements OOPExpectedException{
             if (!(this.expected.isAssignableFrom(e.getCause().getClass()))){
                 return false;
             }
-            ///
-            //if (!(e.getCause().getClass().getName().equals(this.expected.getName()))) {
-            //    return false;
-            //}
+
             String exception_msg = e.getCause().getMessage();
+            
             for (String msg : this.expected_massages) {
+                if (exception_msg == null && msg != null)
+                    return false;
+                //assert exception_msg != null;
                 if (!exception_msg.contains(msg))
                     return false;
             }

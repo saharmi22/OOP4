@@ -7,10 +7,7 @@ import org.junit.rules.ExpectedException;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class OOPUnitCore {
 
@@ -204,8 +201,23 @@ public class OOPUnitCore {
         return annotationMethods;
     }
 
+    static class TestsComparator implements Comparator<Method> {
+
+        // override the compare() method
+        public int compare(Method t1, Method t2)
+        {
+            int order1 = t1.getAnnotation(OOPTest.class).order();
+            int order2 = t2.getAnnotation(OOPTest.class).order();
+            if (order1 == order2)
+                return 0;
+            else if (order1 > order2)
+                return 1;
+            else
+                return -1;
+        }
+    }
     public static ArrayList<Method> sortTestMethods (ArrayList<Method> testsArray){
-        ArrayList<Method> sortedArray = new ArrayList<>();
+        /*ArrayList<Method> sortedArray = new ArrayList<>();
         Boolean updated_in_round = false;
         for (int i = 1; i <= testsArray.size(); i++){
             for (Method m : testsArray){
@@ -219,7 +231,10 @@ public class OOPUnitCore {
                 break;
             updated_in_round = false;
         }
-        return sortedArray;
+        return sortedArray;*/
+
+        testsArray.sort(new TestsComparator());
+        return testsArray;
     }
 
     private static HashMap<String, Object> backupObject (Object toBackup) {
