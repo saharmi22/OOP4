@@ -11,7 +11,7 @@ public class OOPResultImpl implements OOPResult {
     OOPTestResult result;
 
     public OOPResultImpl(Throwable e, OOPExpectedException expected){
-        this.e = new Throwable(e);
+        this.e = e;
         //this.expected = expected;
         if (expected != null && expected.getExpectedException() == null){
             if (e == null) {

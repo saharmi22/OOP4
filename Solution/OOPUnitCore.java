@@ -48,12 +48,13 @@ public class OOPUnitCore {
         ArrayList<Method> Before_methods = createMethodListByAnnotation(testClass, OOPBefore.class);
         ArrayList<Method> After_methods = createMethodListByAnnotation(testClass, OOPAfter.class);
         ArrayList<Method> test_methods = createMethodListByAnnotation(testClass, OOPTest.class);
+        OOPExpectedException expected = findExpectedExceptionVariable(testClass, test_object);
         if (testClass.getAnnotation(OOPTestClass.class).value() == OOPTestClass.OOPTestClassType.ORDERED)
             test_methods = sortTestMethods(test_methods);
         test_methods = filterByTag(test_methods, tag);
 
         //C+D+E- run OOPBefore functions then test and then OOPAfter functions while checking results and creating a map
-        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, Before_methods, After_methods, test_methods);
+        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, Before_methods, After_methods, test_methods, expected);
 
 
         return new OOPTestSummary(oopResultMap);
@@ -62,7 +63,8 @@ public class OOPUnitCore {
 
 
     private static Map<String, OOPResult> runTests(Class<?> testClass, Object testObject,
-                                                   ArrayList<Method> beforeMethods, ArrayList<Method> afterMethods, ArrayList<Method> testMethods) {
+                                                   ArrayList<Method> beforeMethods, ArrayList<Method> afterMethods,
+                                                   ArrayList<Method> testMethods, OOPExpectedException expected) {
         Map<String, OOPResult> oopResultMap = new HashMap<>();
         HashMap<String, Object> backupFields = new HashMap<>();
         Exception before_success, after_success;
@@ -81,12 +83,12 @@ public class OOPUnitCore {
                 continue;
             }
             try {
+                expected = OOPExpectedException.none();
                 test.invoke(testObject); //run the test!
             } catch (Throwable t){
                 e = t;
             }
             finally {
-                OOPExpectedException expected = findExpectedExceptionVariable(testClass, testObject);
                 OOPResult result;
                 if (e != null)
                     result = new OOPResultImpl(e.getCause(), expected);
