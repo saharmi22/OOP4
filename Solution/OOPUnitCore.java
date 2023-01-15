@@ -38,7 +38,7 @@ public class OOPUnitCore {
         Object test_object = createTestObject(testClass);
 
         //find ExpectedException variable
-        OOPExpectedException expected = findExpectedExceptionVariable(testClass, test_object);
+        //OOPExpectedException expected = findExpectedExceptionVariable(testClass, test_object);
 
         //B- run setup functions
         ArrayList<Method> setup_methods = createMethodListByAnnotation(testClass, OOPSetup.class);
@@ -53,7 +53,7 @@ public class OOPUnitCore {
         test_methods = filterByTag(test_methods, tag);
 
         //C+D+E- run OOPBefore functions then test and then OOPAfter functions while checking results and creating a map
-        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, expected, Before_methods, After_methods, test_methods);
+        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, Before_methods, After_methods, test_methods);
 
 
         return new OOPTestSummary(oopResultMap);
@@ -61,7 +61,7 @@ public class OOPUnitCore {
 
 
 
-    private static Map<String, OOPResult> runTests(Class<?> testClass, Object testObject, OOPExpectedException expected,
+    private static Map<String, OOPResult> runTests(Class<?> testClass, Object testObject,
                                                    ArrayList<Method> beforeMethods, ArrayList<Method> afterMethods, ArrayList<Method> testMethods) {
         Map<String, OOPResult> oopResultMap = new HashMap<>();
         HashMap<String, Object> backupFields = new HashMap<>();
@@ -86,8 +86,12 @@ public class OOPUnitCore {
                 e = t;
             }
             finally {
-                expected = findExpectedExceptionVariable(testClass, testObject);
-                OOPResult result = new OOPResultImpl(e, expected);
+                OOPExpectedException expected = findExpectedExceptionVariable(testClass, testObject);
+                OOPResult result;
+                if (e != null)
+                    result = new OOPResultImpl(e.getCause(), expected);
+                else
+                    result = new OOPResultImpl(null, expected);
                 oopResultMap.put(test.getName(), result);
             }
             if (testObject != null)
@@ -213,8 +217,11 @@ public class OOPUnitCore {
         {
             int order1 = t1.getAnnotation(OOPTest.class).order();
             int order2 = t2.getAnnotation(OOPTest.class).order();
-            if (order1 == order2)
-                return 0;
+            if (order1 == order2) {
+                if (t1.getDeclaringClass().isAssignableFrom(t2.getDeclaringClass()))
+                    return -1;
+                return 1;
+            }
             else if (order1 > order2)
                 return 1;
             else

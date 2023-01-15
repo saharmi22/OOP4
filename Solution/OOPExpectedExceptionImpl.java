@@ -22,6 +22,7 @@ public class OOPExpectedExceptionImpl implements OOPExpectedException{
     @Override
     public OOPExpectedException expect(Class<? extends Exception> expected) {
         this.expected = expected;
+        this.expected_massages.clear(); //TODO: check if needed!!
         return this;
     }
 
@@ -33,13 +34,13 @@ public class OOPExpectedExceptionImpl implements OOPExpectedException{
 
     @Override
     public boolean assertExpected(Exception e) {
-        if (e!=null && e.getCause()!=null) {
+        if (e!=null) {
             ///
-            if (!(this.expected.isAssignableFrom(e.getCause().getClass()))){
+            if (!(this.expected.isAssignableFrom(e.getClass()))){
                 return false;
             }
 
-            String exception_msg = e.getCause().getMessage();
+            String exception_msg = e.getMessage();
             
             for (String msg : this.expected_massages) {
                 if (exception_msg == null && msg != null)

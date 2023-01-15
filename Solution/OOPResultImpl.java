@@ -7,18 +7,18 @@ import OOP.Provided.OOPResult;
 public class OOPResultImpl implements OOPResult {
 
     Throwable e;
-    OOPExpectedException expected;
+    //OOPExpectedException expected;
     OOPTestResult result;
 
     public OOPResultImpl(Throwable e, OOPExpectedException expected){
         this.e = new Throwable(e);
-        this.expected = expected;
+        //this.expected = expected;
         if (expected != null && expected.getExpectedException() == null){
             if (e == null) {
                 result = OOPTestResult.SUCCESS;
                 return;
             }
-            else if (e.getCause() instanceof OOPAssertionFailure) {
+            else if (e instanceof OOPAssertionFailure) {
                 result = OOPTestResult.FAILURE;
                 return;
             } else {
@@ -31,11 +31,11 @@ public class OOPResultImpl implements OOPResult {
                 result = OOPTestResult.ERROR;
                 return;
             }
-            if (e.getCause() instanceof OOPAssertionFailure) {
+            if (e instanceof OOPAssertionFailure) {
                 result = OOPTestResult.FAILURE;
                 return;
             }
-            else if (e.getCause() instanceof Exception) {
+            else if (e instanceof Exception) {
                 if (expected.assertExpected((Exception)e))
                     result = OOPTestResult.SUCCESS;
                 else
@@ -48,7 +48,7 @@ public class OOPResultImpl implements OOPResult {
                 result = OOPTestResult.SUCCESS;
                 return;
             }
-            if (e.getCause() instanceof OOPAssertionFailure){
+            if (e instanceof OOPAssertionFailure){
                 result = OOPTestResult.FAILURE;
                 return;
             }
