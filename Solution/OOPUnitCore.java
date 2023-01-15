@@ -48,13 +48,12 @@ public class OOPUnitCore {
         ArrayList<Method> Before_methods = createMethodListByAnnotation(testClass, OOPBefore.class);
         ArrayList<Method> After_methods = createMethodListByAnnotation(testClass, OOPAfter.class);
         ArrayList<Method> test_methods = createMethodListByAnnotation(testClass, OOPTest.class);
-        OOPExpectedException expected = findExpectedExceptionVariable(testClass, test_object);
         if (testClass.getAnnotation(OOPTestClass.class).value() == OOPTestClass.OOPTestClassType.ORDERED)
             test_methods = sortTestMethods(test_methods);
         test_methods = filterByTag(test_methods, tag);
 
         //C+D+E- run OOPBefore functions then test and then OOPAfter functions while checking results and creating a map
-        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, Before_methods, After_methods, test_methods, expected);
+        Map<String, OOPResult> oopResultMap = runTests(testClass, test_object, Before_methods, After_methods, test_methods);
 
 
         return new OOPTestSummary(oopResultMap);
@@ -64,7 +63,7 @@ public class OOPUnitCore {
 
     private static Map<String, OOPResult> runTests(Class<?> testClass, Object testObject,
                                                    ArrayList<Method> beforeMethods, ArrayList<Method> afterMethods,
-                                                   ArrayList<Method> testMethods, OOPExpectedException expected) {
+                                                   ArrayList<Method> testMethods) {
         Map<String, OOPResult> oopResultMap = new HashMap<>();
         HashMap<String, Object> backupFields = new HashMap<>();
         Exception before_success, after_success;
@@ -77,19 +76,21 @@ public class OOPUnitCore {
             //if a before function sends an exception, we need to restore the object and continue to the next step
             if (before_success != null && testObject != null) {
                 restoreObject(testObject, backupFields);
-                OOPResult result = new OOPResultImpl(before_success, null);
+                OOPResult result = new OOPResultImpl(before_success.getCause(), null);
                 //OOPResult result = OOPResult.ERROR;
                 oopResultMap.put(test.getName(), result);
                 continue;
             }
             try {
-                expected = OOPExpectedException.none();
+                noneExpectedExceptionVariable(testClass, testObject);
+                test.setAccessible(true);
                 test.invoke(testObject); //run the test!
             } catch (Throwable t){
                 e = t;
             }
             finally {
                 OOPResult result;
+                OOPExpectedException expected = findExpectedExceptionVariable(testClass, testObject);
                 if (e != null)
                     result = new OOPResultImpl(e.getCause(), expected);
                 else
@@ -119,6 +120,16 @@ public class OOPUnitCore {
             } catch (IllegalAccessException ignored) {}
         }
         return expected;
+    }
+
+    private static void noneExpectedExceptionVariable(Class<?> testClass, Object test_object) {
+        Field expected = findExpectedExceptionField(testClass);
+        if (expected!=null) {
+            expected.setAccessible(true);
+            try {
+                expected.set(test_object, OOPExpectedExceptionImpl.none());
+            } catch (IllegalAccessException ignored) {}
+        }
     }
 
     private static Object createTestObject(Class<?> testClass) {
@@ -169,6 +180,7 @@ public class OOPUnitCore {
             try {
                 //check if test name is in value parameter
                 if (Arrays.asList(m.getAnnotation(OOPBefore.class).value()).contains(test.getName())){
+                    beforeMethods.get(i).setAccessible(true);
                     beforeMethods.get(i).invoke(testObject);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
@@ -183,8 +195,10 @@ public class OOPUnitCore {
 
             try {
                 //check if test name is in value parameter
-                if (Arrays.asList(m.getAnnotation(OOPAfter.class).value()).contains(test.getName()))
+                if (Arrays.asList(m.getAnnotation(OOPAfter.class).value()).contains(test.getName())) {
+                    m.setAccessible(true);
                     m.invoke(testObject);
+                }
             } catch (IllegalAccessException | InvocationTargetException e) {
                 return e;
             }
@@ -296,6 +310,7 @@ public class OOPUnitCore {
     private static void invokeMethodList_setup(Object testObject, ArrayList<Method> setupMethods) {
         for (int i= setupMethods.size()-1; i>=0; i--){
             try {
+                setupMethods.get(i).setAccessible(true);
                 setupMethods.get(i).invoke(testObject);
             } catch (IllegalAccessException | InvocationTargetException ignored) {}
         }

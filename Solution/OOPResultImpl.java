@@ -1,18 +1,22 @@
 package OOP.Solution;
 
 import OOP.Provided.OOPAssertionFailure;
+import OOP.Provided.OOPExceptionMismatchError;
 import OOP.Provided.OOPExpectedException;
 import OOP.Provided.OOPResult;
 
 public class OOPResultImpl implements OOPResult {
 
     Throwable e;
-    //OOPExpectedException expected;
+    Class<? extends Exception> expected;
     OOPTestResult result;
 
     public OOPResultImpl(Throwable e, OOPExpectedException expected){
         this.e = e;
-        //this.expected = expected;
+        if (expected != null)
+            this.expected = expected.getExpectedException();
+        else
+            this.expected = null;
         if (expected != null && expected.getExpectedException() == null){
             if (e == null) {
                 result = OOPTestResult.SUCCESS;
@@ -66,12 +70,20 @@ public class OOPResultImpl implements OOPResult {
 
     @Override
     public String getMessage() {
-        if (e != null) {
-            if (this.getResultType() == OOPTestResult.ERROR){
+        if (this.getResultType() == OOPTestResult.ERROR){
+            if (e != null)
                 return e.getClass().getName();
-            }
-            return this.e.getMessage();
+            else
+                return expected.getName();
         }
+        if (this.getResultType() == OOPTestResult.EXPECTED_EXCEPTION_MISMATCH){
+            OOPExceptionMismatchError miss = new OOPExceptionMismatchError(expected, ((Exception)e).getClass());
+            return miss.getMessage();
+        }
+        if (this.getResultType() == OOPTestResult.SUCCESS)
+            return null;
+        if (e != null)
+            return this.e.getMessage();
         return null;
     }
 
